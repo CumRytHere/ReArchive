@@ -1,0 +1,24 @@
+# Python and tooling
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+dist/
+build/
+*.egg-info/
+
+# Local working data and projects
+/work/
+/scratch/
+
+# Secrets — the development signing key is generated locally and never committed
+keys/
+*.key
+*.ed25519
+.env
+
+# Claude Code personal settings (team settings live in .claude/settings.json)
+.claude/settings.local.json

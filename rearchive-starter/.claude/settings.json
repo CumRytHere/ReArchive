@@ -1,0 +1,60 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv sync:*)",
+      "Bash(uv run pytest:*)",
+      "Bash(uv run ruff:*)",
+      "Bash(uv run mypy:*)",
+      "Bash(uv run rearchive:*)",
+      "Bash(uv run rearchive-bench:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)"
+    ],
+    "ask": [
+      "Bash(uv add:*)",
+      "Bash(uv remove:*)",
+      "Bash(git commit:*)",
+      "Bash(git checkout:*)",
+      "Bash(git reset:*)",
+      "Bash(git stash:*)"
+    ],
+    "deny": [
+      "Edit(/tests/acceptance/**)",
+      "Edit(/docs/DECISIONS.md)",
+      "Edit(/docs/PROJECT_SPEC.md)",
+      "Edit(/CLAUDE.md)",
+      "Edit(/.claude/settings.json)",
+      "Edit(/.claude/hooks/**)",
+      "Bash(git push:*)",
+      "Bash(sudo:*)",
+      "Bash(rm -rf:*)",
+      "Bash(curl:*)",
+      "Bash(wget:*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/lint-edited-file.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/unit-tests-before-stop.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
