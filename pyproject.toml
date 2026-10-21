@@ -1,0 +1,89 @@
+[project]
+name = "rearchive"
+version = "0.1.0"
+description = "Evidence-based recovery of data from legacy and undocumented file formats"
+requires-python = ">=3.12"
+# Runtime dependencies are deliberately minimal: every one of them sits in the
+# canonical-hash path and is therefore correctness-critical.
+#
+#   rfc8785 -- RFC 8785 (JSON Canonicalization Scheme) serializer.
+#     Purpose:  D-005 requires metadata to be serialised as RFC 8785 JCS JSON.
+#               The hard part is ECMAScript Number::toString, which disagrees
+#               with Python's repr() in several ranges. Decision 1 directs us to
+#               depend on an established implementation rather than write one.
+#     Licence:  Apache-2.0 (Trail of Bits).
+#     Size:     9.2 kB pure-Python wheel, zero transitive dependencies.
+dependencies = ["rfc8785==0.1.4"]
+
+[project.scripts]
+rearchive = "rearchive.cli:main"
+rearchive-bench = "rearchive_bench.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rearchive", "src/rearchive_bench"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "hypothesis>=6.112",
+    "mypy>=1.11",
+    "ruff>=0.6",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# `acceptance` is also registered by tests/acceptance/conftest.py, which owns the
+# gate. Declaring it here too keeps --strict-markers usable without that conftest
+# having to be imported first. Duplicate registration is harmless.
+markers = ["acceptance: human-owned gate tests in tests/acceptance (never edited by Claude)"]
+addopts = "--strict-markers --strict-config"
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+# `ruff format` rewrites Python code blocks inside Markdown, so `ruff format .`
+# -- the command in CLAUDE.md -- would otherwise be able to modify files that
+# .claude/settings.json explicitly denies editing. None of them contains a
+# python-tagged fence today, so this is a latent hazard rather than an active
+# one, but the formatter must not have write authority over the human-owned
+# documents at all.
+# force-exclude makes these apply even when a path is named explicitly on the
+# command line, so a stray `ruff format docs/DECISIONS.md` is refused too.
+force-exclude = true
+extend-exclude = [
+    "CLAUDE.md",
+    "SETUP.md",
+    "docs/DECISIONS.md",
+    "docs/PROJECT_SPEC.md",
+    ".claude/**",
+]
+
+# `ruff format` has no per-file-ignore mechanism, so the human-owned gate is
+# excluded from the FORMATTER here while the LINTER still runs over it (see
+# per-file-ignores below). Without this, `uv run ruff format .` would rewrite
+# tests/acceptance/test_gate_a.py, which CLAUDE.md forbids touching.
+[tool.ruff.format]
+exclude = ["tests/acceptance/**", "docs/**"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "PT", "RET", "SIM", "ARG", "PTH", "RUF"]
+
+# tests/acceptance/ is the human-owned gate (CLAUDE.md: "Never edit anything
+# under tests/acceptance/"), so a finding there could only be fixed by editing a
+# forbidden file. Rather than exclude the directory wholesale -- which would also
+# silence real correctness rules such as F821 -- only the three cosmetic codes it
+# actually trips are ignored. Verified: the gate yields exactly 16 findings,
+# 14 E501 + 1 ARG001 + 1 RUF005, and nothing else.
+[tool.ruff.lint.per-file-ignores]
+"tests/acceptance/*" = ["E501", "ARG001", "RUF005"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["src"]
+strict = true
+warn_unreachable = true
+enable_error_code = ["redundant-expr", "truthy-bool", "ignore-without-code"]

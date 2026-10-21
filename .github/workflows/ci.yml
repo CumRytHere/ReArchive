@@ -1,0 +1,114 @@
+# CI for the three determinism environments declared by D-013.
+#
+# At increment 0.1 there is no decode path, so there is no canonical record hash
+# to compare across environments yet. The frozen hex vectors in
+# tests/acceptance are not reachable either (the gate is red until 0.7). What
+# stands in for D-013's cross-environment hash comparison right now is
+# tests/unit/test_canonical_arrays.py: its GOLDENS assert exact canonical bytes
+# and SHA-256 digests, so running the unit suite on all three environments
+# proves the array wire format produces identical bytes on each.
+#
+# Runner availability (checked because docs/STATUS.md 0.1 asks):
+#   ubuntu-24.04        x86-64  free on public and private repos
+#   ubuntu-24.04-arm    arm64   free on PUBLIC repos only; on a private repo
+#                               this is a paid larger runner. If this repo
+#                               stays private and the arm64 runner is not
+#                               enabled, this leg will fail to queue and the
+#                               arm64 environment must be covered on a local
+#                               arm64 machine instead, which docs/STATUS.md
+#                               explicitly permits.
+#   macos-14            arm64   Apple silicon; private-repo minutes bill at 10x.
+#
+# Actions used, and why:
+#   actions/checkout        obtain the source.
+#   astral-sh/setup-uv      install a pinned uv and cache the resolved
+#                           environment. uv is already the project's required
+#                           tool (CLAUDE.md commands), so this adds no new
+#                           project dependency; it only installs it in CI.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: unit (${{ matrix.label }})
+    runs-on: ${{ matrix.runner }}
+    env:
+      UV_LOCKED: "1"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: linux-x86_64
+            runner: ubuntu-24.04
+          - label: linux-arm64
+            runner: ubuntu-24.04-arm
+          - label: macos-arm64
+            runner: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      # --locked fails if uv.lock is out of date rather than silently
+      # re-resolving, so the committed lockfile stays authoritative (D-013
+      # pins the Python version by uv). This MUST come before any `uv run`:
+      # a bare `uv run` auto-syncs without --locked and would rewrite a stale
+      # uv.lock in place, after which --locked would validate against the
+      # already-rewritten file and pass vacuously. UV_LOCKED at job level
+      # closes the same hole for every later `uv run`.
+      - name: Sync the locked environment
+        run: uv sync --locked
+
+      - name: Confirm the architecture and interpreter this leg actually ran on
+        shell: bash
+        run: |
+          uname -sm
+          uv run python -c "import platform, sys; print(platform.machine(), platform.system(), sys.version)"
+
+      # tests/unit/conftest.py registers and loads a single derandomised
+      # Hypothesis profile unconditionally -- there is no environment switch, so
+      # local runs and CI runs use identical settings. (An earlier version of
+      # this step set HYPOTHESIS_PROFILE, which Hypothesis ignores entirely and
+      # which that conftest never read.)
+      - name: Unit and property tests
+        run: uv run pytest -q -m "not acceptance"
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Format check
+        run: uv run ruff format --check .
+
+      - name: Types
+        run: uv run mypy src
+
+  # The Gate A suite is human-owned and stays red until increment 0.7. It is
+  # run here for visibility only and must never gate the build before then --
+  # docs/STATUS.md 0.7 is what flips this to a required check.
+  gate-a-informational:
+    name: Gate A (informational, red until 0.7)
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    env:
+      UV_LOCKED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - name: Acceptance gate
+        run: uv run pytest -q -m acceptance
