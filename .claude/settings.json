@@ -2,46 +2,136 @@
   "permissions": {
     "allow": [
       "Bash(uv sync:*)",
+      "Bash(uv lock --check:*)",
       "Bash(uv run pytest:*)",
+      "Bash(uv run --no-sync pytest:*)",
       "Bash(uv run ruff:*)",
+      "Bash(uv run --no-sync ruff:*)",
       "Bash(uv run mypy:*)",
+      "Bash(uv run --no-sync mypy:*)",
       "Bash(uv run rearchive:*)",
       "Bash(uv run rearchive-bench:*)",
+      "Bash(python3 tools/verify.py:*)",
+      "Bash(python3 tools/protected_paths.py:*)",
+      "Bash(uv run python tools/decision_constants.py:*)",
+      "Bash(python3 tools/mutate.py:*)",
       "Bash(git status:*)",
       "Bash(git diff:*)",
       "Bash(git log:*)",
-      "Bash(git show:*)"
+      "Bash(git show:*)",
+      "Bash(git branch --show-current)",
+      "Bash(git rev-parse:*)",
+      "Bash(git ls-files:*)",
+      "Bash(git add:*)"
     ],
     "ask": [
       "Bash(uv add:*)",
       "Bash(uv remove:*)",
+      "Bash(uv lock:*)",
       "Bash(git commit:*)",
+      "Bash(git switch:*)",
       "Bash(git checkout:*)",
-      "Bash(git reset:*)",
-      "Bash(git stash:*)"
+      "Bash(git restore:*)",
+      "Bash(git stash:*)",
+      "Bash(git merge:*)",
+      "Bash(npm:*)",
+      "Bash(node:*)"
     ],
     "deny": [
-      "Edit(/tests/acceptance/**)",
+      "Edit(/CLAUDE.md)",
       "Edit(/docs/DECISIONS.md)",
       "Edit(/docs/PROJECT_SPEC.md)",
-      "Edit(/CLAUDE.md)",
-      "Edit(/.claude/settings.json)",
-      "Edit(/.claude/hooks/**)",
+      "Edit(/tests/acceptance/**)",
+      "Edit(/tests/contract/**)",
+      "Edit(/.claude/**)",
+      "Edit(/tools/**)",
+      "Edit(/.github/**)",
+      "Edit(/src/rearchive/generated/**)",
       "Bash(git push:*)",
+      "Bash(git rebase:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git clean:*)",
       "Bash(sudo:*)",
       "Bash(rm -rf:*)",
       "Bash(curl:*)",
-      "Bash(wget:*)"
+      "Bash(wget:*)",
+      "Bash(pip:*)",
+      "Bash(uv pip:*)",
+      "WebFetch",
+      "WebSearch"
     ]
   },
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": true,
+    "allowUnsandboxedCommands": false,
+    "autoAllowBashIfSandboxed": false,
+    "filesystem": {
+      "denyWrite": [
+        "./CLAUDE.md",
+        "./docs/DECISIONS.md",
+        "./docs/PROJECT_SPEC.md",
+        "./tests/acceptance",
+        "./tests/contract",
+        "./tools",
+        "./.github"
+      ],
+      "allowWrite": [
+        "~/.cache/uv",
+        "~/.config/rearchive"
+      ]
+    },
+    "network": {
+      "allowedDomains": [
+        "pypi.org",
+        "files.pythonhosted.org",
+        "registry.npmjs.org"
+      ]
+    }
+  },
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session_start.py",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bash_policy.py",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write",
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/lint-edited-file.sh"
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/lint-edited-file.sh",
+            "timeout": 120
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protected_guard.py",
+            "timeout": 30
           }
         ]
       }
@@ -51,7 +141,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/unit-tests-before-stop.sh"
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protected_guard.py",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/unit-tests-before-stop.sh",
+            "timeout": 600
           }
         ]
       }

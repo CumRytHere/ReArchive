@@ -22,3 +22,19 @@ keys/
 
 # Claude Code personal settings (team settings live in .claude/settings.json)
 .claude/settings.local.json
+# --- added by kit v2 ---
+# Generated verification reports (closure records under reports/closure/ ARE committed)
+reports/verify/
+reports/mutate/
+.mutate-backup/
+# Claude Code worktrees created with `claude --worktree`
+.claude/worktrees/
+# Kaitai compiler dependencies (package-lock.json is committed)
+tools/ksc/node_modules/
+# ruff and mypy caches (nested kit configs point ruff's cache here)
+.ruff_cache/
+.mypy_cache/
+__pycache__/
+*.py[cod]
+.hypothesis/
+.pytest_cache/
