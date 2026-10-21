@@ -1,0 +1,10 @@
+{
+  "name": "rearchive-ksc",
+  "private": true,
+  "type": "module",
+  "description": "Pinned Kaitai Struct compiler for ReArchive (no Java needed)",
+  "dependencies": {
+    "js-yaml": "4.1.0",
+    "kaitai-struct-compiler": "0.11.0"
+  }
+}

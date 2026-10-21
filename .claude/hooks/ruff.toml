@@ -1,0 +1,13 @@
+# Standalone ruff configuration for owner-owned tooling (kit v2), independent of the project's own rules,
+# so the kit's style never depends on — or changes — how product code is linted.
+line-length = 120
+# Cache at the repository root: this directory is write-protected by the sandbox.
+cache-dir = "../../.ruff_cache"
+target-version = "py39"
+
+[lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+ignore = ["UP006", "UP007", "UP035", "UP045", "SIM108", "RUF001", "RUF002", "RUF003"]
+
+[lint.per-file-ignores]
+"tests/*" = ["B011"]
