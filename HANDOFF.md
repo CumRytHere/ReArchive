@@ -17,9 +17,10 @@ two packages, honest not-implemented CLI stubs, RFC 8785 JCS canonicalisation vi
 a pinned third-party library behind a ReArchive-owned API, and a canonical array
 wire format with its own typed error contract. 218 unit tests pass; ruff, ruff
 format and strict mypy are clean; the two acceptance tests the increment targets
-are green. **Nothing is committed** — the repository still has exactly one commit,
-the starter kit. **The decision the array format implements (D-015) has never been
-recorded in `docs/DECISIONS.md`**, so the format is provisional, its 15 vectors are
+are green. **Committed as `077bf57` and pushed** to
+`git@github.com:CumRytHere/ReArchive.git` on 2026-10-21; `origin/main` and local
+`main` are identical. **The decision the array format implements (D-015) has
+never been recorded in `docs/DECISIONS.md`**, so the format is provisional, its 15 vectors are
 non-normative, no golden file may be written, and the increment cannot close.
 
 ---
@@ -36,9 +37,10 @@ These are not interchangeable. The project has been bitten by collapsing them.
 | **Acceptance-tested** | **Partly** | 2 of 19 gate tests pass — exactly the two 0.1 targets. The other 17 are future-increment stubs |
 | **Reproducible from a clean clone** | **Yes** | verified by export + `uv sync --locked` + pytest, twice, by two different sessions |
 | **Reviewed by the project's invariant-reviewer** | **Stale** | the completed review inspected `canonical.py` blob `bc3734ac`; the current blob is `3310f878` because its own findings were then fixed |
-| **Independently audited** | **No** | impossible today: the implementation exists only in the index, so no worktree can see it |
+| **Independently audited** | **No — but now possible** | a frozen snapshot exists at `/tmp/rearchive-audit-077bf57`, detached at `077bf57`. A review launched by the implementation session is still not independent |
 | **Owner-ratified** | **No** | `docs/DECISIONS.md` has **0** `## D-015` headings and ends at `## D-014` |
-| **Committed** | **No** | `git rev-list --count HEAD` = **1** (`c060158`, the starter kit) |
+| **Committed** | **Yes** | `077bf57a51f1a58b0e84f871c2d0b55d55909cdb`, 2 commits |
+| **Pushed** | **Yes** | `origin/main` == local `main`; trees both `3228eff00ede` |
 | **Increment formally closed** | **No** | see §4 |
 
 ---
@@ -46,13 +48,21 @@ These are not interchangeable. The project has been bitten by collapsing them.
 ## 3. Exact repository state
 
 ```
-branch    main
-HEAD      c0601584f173ab4a19e721039374ae94fed9dba9   ("Add ReArchive starter kit")
-commits   1
-staged    34      unstaged 5      untracked 1      stash 0
-worktrees /home/s1/projects/rearchive  c060158 [main]
-          /tmp/rearchive-audit-0.1     c060158 (detached)
+branch    main  ->  origin/main (tracking)
+HEAD      077bf57a51f1a58b0e84f871c2d0b55d55909cdb
+commits   2       working tree clean
+remote    origin  git@github.com:CumRytHere/ReArchive.git   (SSH; HTTPS has no credential here)
+pushed    origin/main == HEAD; both trees 3228eff00ede162cfbc420bf8bcfc9ab2053ca5f
+worktrees /home/s1/projects/rearchive   077bf57 [main]
+          /tmp/rearchive-audit-077bf57  077bf57 (detached)  <- the real audit snapshot
+          /tmp/rearchive-audit-0.1      c060158 (detached)  <- STALE, starter only, no src/
 ```
+
+**The repository is PRIVATE.** That is not a defect, but it blocks every reader
+that is not the owner: an unauthenticated fetch, a connector bound to a different
+GitHub account, and a web fetch of the commit page all get **404**, which GitHub
+returns for private and non-existent repositories alike. A session that cannot
+read it has not proved it is missing — only that it cannot see it.
 
 Key blobs, for anyone comparing against a review report:
 
@@ -67,8 +77,11 @@ Key blobs, for anyone comparing against a review report:
 `c060158` and contains only `rearchive-starter/` — no `src/`, no `tests/unit/`.
 An audit run against it reviews nothing, which is why an earlier audit returned
 INDETERMINATE. It cannot be fixed without a commit, because a detached worktree
-can only check out a commit and the implementation has never been committed. It
-was preserved rather than deleted; do not treat it as evidence.
+can only check out a commit, and when it was created the implementation had not
+been committed. It was preserved rather than deleted; do not treat it as
+evidence. **Use `/tmp/rearchive-audit-077bf57` instead** — detached at `077bf57`,
+verified to contain `src/`, `tests/unit/` and `canonical.py` at blob
+`3310f878da89`, 35 tracked files.
 
 ### Unstaged vs staged
 
@@ -330,25 +343,55 @@ defines `view` as "integer/**float** dtype".
 
 ---
 
-## 11a. Publishing is blocked by project policy, not by a missing step
+## 11a. Publishing — done, and what it means for other sessions
 
-As of 2026-10-21 this repository **cannot be pushed from an agent session**, by
-the project's own configuration:
+Published on 2026-10-21 to **https://github.com/CumRytHere/ReArchive**, commit
+`077bf57a51f1a58b0e84f871c2d0b55d55909cdb`. Verified by ref *and* by tree hash:
+`origin/main` and local `main` both resolve to tree
+`3228eff00ede162cfbc420bf8bcfc9ab2053ca5f`, so the published files are
+byte-identical to local rather than merely a ref having moved.
 
-- **No remote is configured.** `git remote -v` is empty.
-- **`Bash(git push:*)` is in the deny list** in `.claude/settings.json`. That file
-  is itself deny-listed for editing, and it must not be edited to work around its
-  own rule.
-- **`gh` is not installed**, and `Bash(curl:*)` / `Bash(wget:*)` are also denied,
-  so a repository cannot be created through the GitHub API either.
+**The push was performed by the owner, not by an agent session.** `git push` is
+denied in `.claude/settings.json`, and that remains true: an agent session can
+commit but not publish. Do not edit that file to work around it.
 
-Any of those three could be changed by the owner; none may be circumvented from a
-session. Publishing therefore requires the owner to create the GitHub repository,
-add the remote, and run the push, or to relax the deny rule deliberately.
+**Remote must be SSH.** `https://github.com/CumRytHere/ReArchive.git` fails with
+`could not read Username` — there is no credential helper, no `~/.git-credentials`
+and no `GITHUB_TOKEN`. The SSH key at `~/.ssh/id_ed25519.pub` authenticates as
+`CumRytHere`, so `git@github.com:CumRytHere/ReArchive.git` is the working URL.
 
-**Also check before publishing:** `git config user.email` is
-`shreshthf2503gmail.com` — it has no `@`. Commits made with it will not attribute
-to a GitHub account. Left unchanged because git identity is the owner's to set.
+### If another session cannot see this repository
+
+It is **private**. A second Claude session, a GitHub connector bound to a
+different account, or an unauthenticated web fetch will all get **404** — the
+same answer GitHub gives for a repository that does not exist. Three ways out,
+all owner-only:
+
+1. Connect the GitHub account that owns `CumRytHere` and install the GitHub App
+   on `ReArchive`, at https://claude.ai/connect-github.
+2. Make the repository public. This also unblocks the free `ubuntu-24.04-arm` CI
+   runner that D-013's arm64 leg needs (Q-13).
+3. Hand over a tarball of the checkout including `.git`.
+
+**A session reading an older copy of this file may conclude the work was never
+committed.** Earlier revisions said exactly that, truthfully at the time. It is
+committed and pushed; check `git log` and `git ls-remote` rather than trusting
+this paragraph.
+
+### Pending authorship fix
+
+`git config user.email` is `shreshthf2503gmail.com` — **no `@`** — so commit
+`077bf57` is not attributed to a GitHub account. The SSH key's comment is the
+literal placeholder `YOUR_GITHUB_EMAIL`. Fixing it now needs a force-push:
+
+```bash
+git config user.email "<real address>"
+git commit --amend --reset-author --no-edit
+git push --force-with-lease
+```
+
+Cheap while nobody has cloned the repository. Left to the owner: git identity is
+theirs, and rewriting published authorship is not an agent decision.
 
 ## 12. Next actions, in order
 
