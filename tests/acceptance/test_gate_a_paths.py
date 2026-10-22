@@ -148,7 +148,10 @@ def test_normalisation_variants_are_two_entries(tmp_path: Path) -> None:
         "no Unicode normalisation may merge entries (D-016 §4)"
     )
     hashes = {f["canonical_sha256"] for f in report["files"]}
-    assert len(hashes) == 1 and None not in hashes, (
+    assert len(hashes) == 1, (
+        "same content decodes to the same canonical record (D-017 §5)"
+    )
+    assert None not in hashes, (
         "same content decodes to the same canonical record (D-017 §5)"
     )
 
@@ -168,7 +171,8 @@ def test_symlinks_are_recorded_not_followed(tmp_path: Path) -> None:
     by_name = {f["source_relpath"]: f for f in report["files"]}
     assert set(by_name) == {"real.bin", "link.bin"}
     link = by_name["link.bin"]
-    assert link["kind"] == "symlink" and link["sha256"] is None, "D-016 §5"
+    assert link["kind"] == "symlink", "D-016 §5"
+    assert link["sha256"] is None, "D-016 §5"
     assert link["outcome"] == "failed"
     assert by_name["real.bin"]["kind"] == "file"
     assert by_name["real.bin"]["canonical_sha256"]

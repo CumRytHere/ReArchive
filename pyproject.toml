@@ -80,6 +80,7 @@ select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "PT", "RET", "SIM", "AR
 # 14 E501 + 1 ARG001 + 1 RUF005, and nothing else.
 [tool.ruff.lint.per-file-ignores]
 "tests/acceptance/*" = ["E501", "ARG001", "RUF005"]
+"tests/acceptance/test_gate_a_paths.py" = ["PTH118", "PTH123", "PTH208"]
 
 [tool.mypy]
 python_version = "3.12"
